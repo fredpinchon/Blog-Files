@@ -1,0 +1,66 @@
+--- Create Table
+create or replace table Orders_Demo (
+RecordId Double,
+Category varchar
+,CustomerId varchar
+,Customer_Name varchar
+,OrderId varchar
+,ProductId varchar
+,Product_Name varchar
+,Segment varchar
+,Sub_Category varchar
+,Discount Double
+,Profit Double
+,Quantity Double
+,Sales Double
+,Order_Date Date
+);
+
+--- Populate table
+insert into Orders_Demo (RecordID,Category,CustomerId,Customer_Name,OrderId,Order_Date,ProductId,Product_Name,Segment,Sub_Category,Discount,Profit,Quantity,Sales) values 
+(1,'Furniture', 'CG-12520', 'Claire Gute', 'CA-2013-152156', '2013-11-09', 'FUR-BO-10001798', 'Bush Somerset Collection Bookcase', 'Consumer', 'Bookcases',0,41.9136,2,261.96
+),(2,'Furniture', 'CG-12520', 'Claire Gute', 'CA-2013-152156', '2013-11-09', 'FUR-CH-10000454', 'Hon Deluxe Fabric Upholstered Stacking Chairs, Rounded Back', 'Consumer', 'Chairs',0,219.582,3,731.94
+),(3,'Office Supplies', 'DV-13045', 'Darrin Van Huff', 'CA-2013-138688', '2013-06-13', 'OFF-LA-10000240', 'Self-Adhesive Address Labels for Typewriters by Universal', 'Corporate', 'Labels',0,6.8714,2,14.62
+),(4,'Furniture', 'SO-20335', 'Sean O''Donnell', 'US-2012-108966', '2012-10-11', 'FUR-TA-10000577', 'Bretford CR4500 Series Slim Rectangular Table', 'Consumer', 'Tables',0.45,-383.031,5,957.5775
+),(5,'Office Supplies', 'SO-20335', 'Sean O''Donnell', 'US-2012-108966', '2012-10-11', 'OFF-ST-10000760', 'Eldon Fold ''N Roll Cart System', 'Consumer', 'Storage',0.2,2.5164,2,22.368
+),(6,'Furniture', 'BH-11710', 'Brosina Hoffman', 'CA-2011-115812', '2011-06-09', 'FUR-FU-10001487', 'Eldon Expressions Wood and Plastic Desk Accessories, Cherry Wood', 'Consumer', 'Furnishings',0,14.1694,7,48.86
+),(7,'Office Supplies', 'BH-11710', 'Brosina Hoffman', 'CA-2011-115812', '2011-06-09', 'OFF-AR-10002833', 'Newell 322', 'Consumer', 'Art',0,1.9656,4,7.28
+),(8,'Technology', 'BH-11710', 'Brosina Hoffman', 'CA-2011-115812', '2011-06-09', 'TEC-PH-10002275', 'Mitel 5320 IP Phone VoIP phone', 'Consumer', 'Phones',0.2,90.7152,6,907.152
+),(9,'Office Supplies', 'BH-11710', 'Brosina Hoffman', 'CA-2011-115812', '2011-06-09', 'OFF-BI-10003910', 'DXL Angle-View Binders with Locking Rings by Samsill', 'Consumer', 'Binders',0.2,5.7825,3,18.504
+),(10,'Office Supplies', 'BH-11710', 'Brosina Hoffman', 'CA-2011-115812', '2011-06-09', 'OFF-AP-10002892', 'Belkin F5C206VTEL 6 Outlet Surge', 'Consumer', 'Appliances',0,34.47,5,114.9
+),(11,'Furniture', 'BH-11710', 'Brosina Hoffman', 'CA-2011-115812', '2011-06-09', 'FUR-TA-10001539', 'Chromcraft Rectangular Conference Tables', 'Consumer', 'Tables',0.2,85.3091999999998,9,1706.184
+),(12,'Technology', 'BH-11710', 'Brosina Hoffman', 'CA-2011-115812', '2011-06-09', 'TEC-PH-10002033', 'Konftel 250 Conference phone - Charcoal black', 'Consumer', 'Phones',0.2,68.3568,4,911.424
+),(13,'Office Supplies', 'AA-10480', 'Andrew Allen', 'CA-2014-114412', '2014-04-16', 'OFF-PA-10002365', 'Xerox 1967', 'Consumer', 'Paper',0.2,5.4432,3,15.552
+),(14,'Office Supplies', 'IM-15070', 'Irene Maddox', 'CA-2013-161389', '2013-12-06', 'OFF-BI-10003656', 'Fellowes PB200 Plastic Comb Binding Machine', 'Consumer', 'Binders',0.2,132.5922,3,407.976
+),(15,'Office Supplies', 'HP-14815', 'Harold Pawlan', 'US-2012-118983', '2012-11-22', 'OFF-AP-10002311', 'Holmes Replacement Filter for HEPA Air Cleaner, Very Large Room, HEPA Filter', 'Home Office', 'Appliances',0.8,-123.858,5,68.81
+),(16,'Office Supplies', 'HP-14815', 'Harold Pawlan', 'US-2012-118983', '2012-11-22', 'OFF-BI-10000756', 'Storex DuraTech Recycled Plastic Frosted Binders', 'Home Office', 'Binders',0.8,-3.816,3,2.544
+);
+
+--- Add cost column
+ALTER TABLE Orders_Demo ADD COLUMN UNIT_COST DOUBLE aS ((SALES - PROFIT)/QUANTITY);
+ALTER TABLE Orders_Demo ADD COLUMN UNIT_COST DOUBLE ;
+ALTER TABLE Orders_Demo DROP COLUMN UNIT_COST;
+update Orders_Demo
+  set UNIT_COST = (SALES - PROFIT)/QUANTITY;
+  
+ 
+  --- UNPIVOT to Transpose / get long table
+CREATE OR REPLACE TABLE "INTERNAL"."PUBLIC"."ORDERS_DEMO_LONG" COMMENT = 'Based on ORDERS_DEMO'  AS
+  WITH "Orders_demo_Selected" as (SELECT CUSTOMERID,CUSTOMER_NAME,ORDERID,ORDER_DATE,PRODUCTID,PRODUCT_NAME,CATEGORY,SEGMENT,SUB_CATEGORY,DISCOUNT,PROFIT,QUANTITY,SALES,UNIT_COST
+from "INTERNAL"."PUBLIC"."ORDERS_DEMO")
+SELECT * from "Orders_demo_Selected"
+unpivot(indicator for Indicator_Type in (DISCOUNT,PROFIT,QUANTITY,SALES,UNIT_COST) )
+;
+
+--- PIVOT to Cross Tab / get wide table
+select *
+from ORDERS_DEMO_LONG
+pivot(sum(INDICATOR) for INDICATOR_TYPE IN ('SALES','QUANTITY','DISCOUNT','PROFIT','UNIT_COST')) 
+;
+    
+    
+--- PIVOT to get wide table with clean headers
+select CUSTOMERID,CUSTOMER_NAME,ORDERID,ORDER_DATE,PRODUCTID,PRODUCT_NAME,CATEGORY,SEGMENT,SUB_CATEGORY,"'SALES'" as SALES,"'QUANTITY'" as QUANTITY,"'DISCOUNT'" as DISCOUNT,"'PROFIT'" as PROFIT,"'UNIT_COST'" as UNIT_COST
+from ORDERS_DEMO_LONG
+pivot(sum(INDICATOR) for INDICATOR_TYPE IN ('SALES','QUANTITY','DISCOUNT','PROFIT','UNIT_COST')) 
+;
